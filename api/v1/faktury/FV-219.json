@@ -1,0 +1,8 @@
+{
+  "numer": "FV-219",
+  "dostawca": "Delta Serwis Sp. z o.o.",
+  "dataWystawienia": "2026-10-26",
+  "kwotaBrutto": 1830.0,
+  "waluta": "PLN",
+  "pdfUrl": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury/FV-219.pdf"
+}

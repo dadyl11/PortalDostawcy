@@ -1,0 +1,8 @@
+{
+  "numer": "FV-217",
+  "dostawca": "Beta Logistyka S.A.",
+  "dataWystawienia": "2026-10-12",
+  "kwotaBrutto": 12950.0,
+  "waluta": "PLN",
+  "pdfUrl": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury/FV-217.pdf"
+}

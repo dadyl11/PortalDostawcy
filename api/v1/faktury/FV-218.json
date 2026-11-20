@@ -1,0 +1,8 @@
+{
+  "numer": "FV-218",
+  "dostawca": "Gamma Opakowania Sp. z o.o.",
+  "dataWystawienia": "2026-10-19",
+  "kwotaBrutto": 6480.0,
+  "waluta": "PLN",
+  "pdfUrl": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury/FV-218.pdf"
+}

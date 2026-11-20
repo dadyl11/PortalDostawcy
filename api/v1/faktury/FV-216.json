@@ -1,0 +1,8 @@
+{
+  "numer": "FV-216",
+  "dostawca": "Alfa Materiały Sp. z o.o.",
+  "dataWystawienia": "2026-10-05",
+  "kwotaBrutto": 4210.0,
+  "waluta": "PLN",
+  "pdfUrl": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury/FV-216.pdf"
+}
