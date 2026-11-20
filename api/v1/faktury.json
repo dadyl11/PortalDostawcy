@@ -1,0 +1,38 @@
+{
+  "wersja": "v1",
+  "liczba": 4,
+  "faktury": [
+    {
+      "numer": "FV-216",
+      "dostawca": "Alfa Materiały Sp. z o.o.",
+      "dataWystawienia": "2026-10-05",
+      "kwotaBrutto": 4210.0,
+      "waluta": "PLN",
+      "pdfUrl": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury/FV-216.pdf"
+    },
+    {
+      "numer": "FV-217",
+      "dostawca": "Beta Logistyka S.A.",
+      "dataWystawienia": "2026-10-12",
+      "kwotaBrutto": 12950.0,
+      "waluta": "PLN",
+      "pdfUrl": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury/FV-217.pdf"
+    },
+    {
+      "numer": "FV-218",
+      "dostawca": "Gamma Opakowania Sp. z o.o.",
+      "dataWystawienia": "2026-10-19",
+      "kwotaBrutto": 6480.0,
+      "waluta": "PLN",
+      "pdfUrl": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury/FV-218.pdf"
+    },
+    {
+      "numer": "FV-219",
+      "dostawca": "Delta Serwis Sp. z o.o.",
+      "dataWystawienia": "2026-10-26",
+      "kwotaBrutto": 1830.0,
+      "waluta": "PLN",
+      "pdfUrl": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury/FV-219.pdf"
+    }
+  ]
+}

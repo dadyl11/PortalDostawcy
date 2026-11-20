@@ -1,0 +1,30 @@
+{
+  "nazwa": "Portal dostawcy: atrapa API do zajęć",
+  "wersja": "v1",
+  "uwaga": "Hosting statyczny: tylko GET, bez logowania, dane fikcyjne. Nieistniejąca faktura daje 404.",
+  "endpointy": [
+    {
+      "metoda": "GET",
+      "adres": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury.json",
+      "opis": "lista faktur"
+    },
+    {
+      "metoda": "GET",
+      "adres": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury/{numer}.json",
+      "opis": "szczegóły faktury, np. FV-218; pole pdfUrl wskazuje plik"
+    },
+    {
+      "metoda": "GET",
+      "adres": "https://dadyl11.github.io/PortalDostawcy/api/v1/faktury/{numer}.pdf",
+      "opis": "plik PDF faktury"
+    }
+  ],
+  "pola": {
+    "numer": "tekst, np. FV-218",
+    "dostawca": "tekst",
+    "dataWystawienia": "RRRR-MM-DD",
+    "kwotaBrutto": "liczba",
+    "waluta": "kod waluty",
+    "pdfUrl": "adres pliku PDF"
+  }
+}
