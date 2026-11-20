@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal dostawcy – faktury (demo)</title>
+<style>
+  :root { --tekst:#1c2733; --ramka:#c9d3dc; --akcent:#12304a; --tlo2:#eef3f7; }
+  [hidden] { display:none !important; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:17px/1.45 "Segoe UI", Arial, sans-serif; color:var(--tekst); background:#fff; }
+  #panel-prowadzacego { background:#f6f2e4; border-bottom:1px solid #d9d1b3; padding:8px 24px; font-size:14px;
+                        display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  #panel-prowadzacego a { color:var(--akcent); padding:2px 8px; border:1px solid var(--akcent); border-radius:4px; text-decoration:none; }
+  #panel-prowadzacego a[aria-current="true"] { background:var(--akcent); color:#fff; }
+  #panel-prowadzacego button { font:inherit; padding:2px 10px; cursor:pointer; }
+  main { max-width:1240px; margin:0 auto; padding:20px 24px; }
+  h1 { margin:0 0 4px; font-size:28px; color:var(--akcent); }
+  .podtytul { margin:0 0 20px; color:#52606d; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--ramka); vertical-align:top; }
+  th { background:var(--tlo2); font-weight:600; }
+  td.kwota, td.nr, td.data { white-space:nowrap; }
+  .menu { display:flex; gap:8px; flex-wrap:wrap; }
+  .menu button, .szczegoly button { font:inherit; font-size:16px; padding:6px 12px; border:1px solid var(--akcent); background:#fff;
+                                    color:var(--akcent); border-radius:5px; cursor:pointer; }
+  .menu button:hover, .szczegoly button:hover { background:var(--akcent); color:#fff; }
+  .menu button[aria-expanded="true"] { background:var(--tlo2); }
+  .szczegoly { margin-top:10px; padding:10px 12px; background:var(--tlo2); border-left:4px solid var(--akcent); }
+  .szczegoly p { margin:0 0 8px; }
+  #status { margin-top:18px; min-height:1.5em; font-weight:600; color:#1b6b3a; }
+  .stopka { margin-top:28px; font-size:13px; color:#6b7785; }
+</style>
+</head>
+<body>
+<div id="panel-prowadzacego" data-panel="prowadzacego">
+  <strong>Panel prowadzącego (poza ćwiczeniem)</strong>
+  <span>Widok:</span>
+  <span id="przelaczniki"></span>
+  <button type="button" id="reset">Reset ćwiczenia</button>
+</div>
+<main>
+  <h1>Portal dostawcy</h1>
+  <p class="podtytul" id="widok-opis">Faktury wystawione przez dostawców. Dane fikcyjne, strona do zajęć.</p>
+  <table id="faktury">
+    <thead><tr><th>Numer faktury</th><th>Dostawca</th><th>Data</th><th>Kwota brutto</th><th>Akcje</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <p id="status" role="status" aria-live="polite" data-liczba-pobran="0" data-ostatnie-pobranie=""></p>
+  <p class="stopka">Strona demonstracyjna, działa bez sieci i bez serwera. Pobierany plik PDF zawiera numer faktury z wiersza.</p>
+</main>
+<script>
+/* PDF-DANE-POCZATEK (blok zapisywany przez _narzedzia/_gen_faktury.py, nie edytuj ręcznie) */
+var PDF = {
+  "FV-216": "JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgaHR0cDovL3d3dy5yZXBvcnRsYWIuY29tCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgOCAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCA3IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago1IDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgNyAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0F1dGhvciAoYW5vbnltb3VzKSAvQ3JlYXRpb25EYXRlIChEOjIwMDAwMTAxMDAwMDAwKzAwJzAwJykgL0NyZWF0b3IgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIHd3dy5yZXBvcnRsYWIuY29tKSAvS2V5d29yZHMgKCkgL01vZERhdGUgKEQ6MjAwMDAxMDEwMDAwMDArMDAnMDAnKSAvUHJvZHVjZXIgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIHd3dy5yZXBvcnRsYWIuY29tKSAKICAvU3ViamVjdCAodW5zcGVjaWZpZWQpIC9UaXRsZSAoRmFrdHVyYSBGVi0yMTYpIC9UcmFwcGVkIC9GYWxzZQo+PgplbmRvYmoKNyAwIG9iago8PAovQ291bnQgMSAvS2lkcyBbIDQgMCBSIF0gL1R5cGUgL1BhZ2VzCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDMyOQo+PgpzdHJlYW0KR2FycCc6TVlTOiheQkpWNUsuXiFgZ1MzQWBdbENQa0c7SCU+TG4uNSxIMC0kKVxNdTNCNFxGZjwhIydCalM/TCVAQSlYaGUiLCUpTW84UTpeYzVqN2pxLyxFSzMsVU5FWGs6cD5kdWZrLDZVSG4xRDVGPiNbLTE/OiJKbiQsSmMhcHBRLV1eX1pecWBHZ2NYWV9WNVdFVFBbY3IoOmdHXWYrJ09gaDMnU2FUNi4oV24/OkItM0Vqc0cuUm5JIigjRzIqRDRxRkE1KDxpNTBaOSZ1YUdWJC89YlY7YUNQP1lgJmBmMTctKTQsdWNPOVtILl1kdFEnJlJQPVhibCJmMVxzV2toRGEzQl4pbU5GcnA5cGtGKkZiK08ocDY+XGkuZ1xbT042PUIjKjldVWU3MGlYQWtzVyhZKE90bWMlQEghY2RJU0dRfj5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA3MyAwMDAwMCBuIAowMDAwMDAwMTE0IDAwMDAwIG4gCjAwMDAwMDAyMjEgMDAwMDAgbiAKMDAwMDAwMDMzMyAwMDAwMCBuIAowMDAwMDAwNTM2IDAwMDAwIG4gCjAwMDAwMDA2MDQgMDAwMDAgbiAKMDAwMDAwMDkwNiAwMDAwMCBuIAowMDAwMDAwOTY1IDAwMDAwIG4gCnRyYWlsZXIKPDwKL0lEIApbPDk4YTE1YmUzOGIwOWY4OGM4YWFlNjliMGNmODRlZGY1Pjw5OGExNWJlMzhiMDlmODhjOGFhZTY5YjBjZjg0ZWRmNT5dCiUgUmVwb3J0TGFiIGdlbmVyYXRlZCBQREYgZG9jdW1lbnQgLS0gZGlnZXN0IChodHRwOi8vd3d3LnJlcG9ydGxhYi5jb20pCgovSW5mbyA2IDAgUgovUm9vdCA1IDAgUgovU2l6ZSA5Cj4+CnN0YXJ0eHJlZgoxMzg0CiUlRU9GCg==",
+  "FV-217": "JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgaHR0cDovL3d3dy5yZXBvcnRsYWIuY29tCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgOCAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCA3IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago1IDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgNyAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0F1dGhvciAoYW5vbnltb3VzKSAvQ3JlYXRpb25EYXRlIChEOjIwMDAwMTAxMDAwMDAwKzAwJzAwJykgL0NyZWF0b3IgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIHd3dy5yZXBvcnRsYWIuY29tKSAvS2V5d29yZHMgKCkgL01vZERhdGUgKEQ6MjAwMDAxMDEwMDAwMDArMDAnMDAnKSAvUHJvZHVjZXIgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIHd3dy5yZXBvcnRsYWIuY29tKSAKICAvU3ViamVjdCAodW5zcGVjaWZpZWQpIC9UaXRsZSAoRmFrdHVyYSBGVi0yMTcpIC9UcmFwcGVkIC9GYWxzZQo+PgplbmRvYmoKNyAwIG9iago8PAovQ291bnQgMSAvS2lkcyBbIDQgMCBSIF0gL1R5cGUgL1BhZ2VzCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDMyMgo+PgpzdHJlYW0KR2FycCc/IywnSCdGKkxtcmVnR2opZihhTUljIjloRF5vPTdDJSFoc0xQYzltLDQ9JjliJU1lcCFrRVA5aztmJ001amAoUVRATF9QaSREZj4qJFBXL0xdYGUhOWwvc15LP2xSUFE5ImdlNDo5dFcsUkQ2ZVU7ZlA1KzJtQ2dgXTRmcSYxLDlEJ3NbcTNIJThEOnFbZCR1YTFiUytFYG5nRSo/dWltL1NHJzRFbWExSm1dQ1c4NCFUTVM3YkIuN09tO0QwMUxoYSQ4UmV1IzM4b0lOW1cqLTNWYmcpci44SUZfQVRaLGpdImhaa19JOmZXcGhHLmNGPlRPSEZRa1RYR1lhQyRKL2U+ZGktcDcnUT45T3A3Wkc1UWVbayE9LyRsS3M3VS5kIUE+cT45XWtlRFJVNy0sMWdgMmVqUWxeXCl+PmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDkKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDczIDAwMDAwIG4gCjAwMDAwMDAxMTQgMDAwMDAgbiAKMDAwMDAwMDIyMSAwMDAwMCBuIAowMDAwMDAwMzMzIDAwMDAwIG4gCjAwMDAwMDA1MzYgMDAwMDAgbiAKMDAwMDAwMDYwNCAwMDAwMCBuIAowMDAwMDAwOTA2IDAwMDAwIG4gCjAwMDAwMDA5NjUgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8ZWI3MWQzMGQ1NDg1N2U1MGJjNGNiOTVkMDhiMDlkZDQ+PGViNzFkMzBkNTQ4NTdlNTBiYzRjYjk1ZDA4YjA5ZGQ0Pl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKGh0dHA6Ly93d3cucmVwb3J0bGFiLmNvbSkKCi9JbmZvIDYgMCBSCi9Sb290IDUgMCBSCi9TaXplIDkKPj4Kc3RhcnR4cmVmCjEzNzcKJSVFT0YK",
+  "FV-218": "JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgaHR0cDovL3d3dy5yZXBvcnRsYWIuY29tCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgOCAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCA3IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago1IDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgNyAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0F1dGhvciAoYW5vbnltb3VzKSAvQ3JlYXRpb25EYXRlIChEOjIwMDAwMTAxMDAwMDAwKzAwJzAwJykgL0NyZWF0b3IgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIHd3dy5yZXBvcnRsYWIuY29tKSAvS2V5d29yZHMgKCkgL01vZERhdGUgKEQ6MjAwMDAxMDEwMDAwMDArMDAnMDAnKSAvUHJvZHVjZXIgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIHd3dy5yZXBvcnRsYWIuY29tKSAKICAvU3ViamVjdCAodW5zcGVjaWZpZWQpIC9UaXRsZSAoRmFrdHVyYSBGVi0yMTgpIC9UcmFwcGVkIC9GYWxzZQo+PgplbmRvYmoKNyAwIG9iago8PAovQ291bnQgMSAvS2lkcyBbIDQgMCBSIF0gL1R5cGUgL1BhZ2VzCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDMzMAo+PgpzdHJlYW0KR2FycCc/WWI5SidGIiIjSVohYSxOTDspXE5JVGUpU1U1JjdgZzY7cmM3NWMrTU4qR2pvV3A7ViNGLk9xJVFWO0lOO3QmXCkiNDclPzhTNl8hP24tbSNhYCpLKW5iSVRRcVBMVFFZTXRJNT0wQDc5PlEhP249X0FmYFIuaz1JbiYnWnFCITR1SV5oWVwhLV1FVVIiJCg3JzU2LSRCbk1AOmdHWEo5R2lxV1ZzIUswb2pYbVtkUHJXJTUmZG4udTxDTS1zOmhfdGpGMkhPW2k8NyUsUyM+JUw2Qk5SOXJSb0JDIT0walo8MCNtcyNqKTxkSGtrNScpMk9vXltGVSItRS4uYCwzQmZAVWcmPGJyMClhTjg0PkdbIyo1OEddZlZiIjZPMShhWDBCc1UqSytldTZfUV1hcTdAJzsnNEluKmJgQG9dKEo2Tn4+ZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgOQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwNzMgMDAwMDAgbiAKMDAwMDAwMDExNCAwMDAwMCBuIAowMDAwMDAwMjIxIDAwMDAwIG4gCjAwMDAwMDAzMzMgMDAwMDAgbiAKMDAwMDAwMDUzNiAwMDAwMCBuIAowMDAwMDAwNjA0IDAwMDAwIG4gCjAwMDAwMDA5MDYgMDAwMDAgbiAKMDAwMDAwMDk2NSAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9JRCAKWzwyZGFhY2U5NzE0MjY0ZDJlZGVlMmEzZWU3MTcyYmIzND48MmRhYWNlOTcxNDI2NGQyZWRlZTJhM2VlNzE3MmJiMzQ+XQolIFJlcG9ydExhYiBnZW5lcmF0ZWQgUERGIGRvY3VtZW50IC0tIGRpZ2VzdCAoaHR0cDovL3d3dy5yZXBvcnRsYWIuY29tKQoKL0luZm8gNiAwIFIKL1Jvb3QgNSAwIFIKL1NpemUgOQo+PgpzdGFydHhyZWYKMTM4NQolJUVPRgo=",
+  "FV-219": "JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgaHR0cDovL3d3dy5yZXBvcnRsYWIuY29tCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgOCAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCA3IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago1IDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgNyAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0F1dGhvciAoYW5vbnltb3VzKSAvQ3JlYXRpb25EYXRlIChEOjIwMDAwMTAxMDAwMDAwKzAwJzAwJykgL0NyZWF0b3IgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIHd3dy5yZXBvcnRsYWIuY29tKSAvS2V5d29yZHMgKCkgL01vZERhdGUgKEQ6MjAwMDAxMDEwMDAwMDArMDAnMDAnKSAvUHJvZHVjZXIgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIHd3dy5yZXBvcnRsYWIuY29tKSAKICAvU3ViamVjdCAodW5zcGVjaWZpZWQpIC9UaXRsZSAoRmFrdHVyYSBGVi0yMTkpIC9UcmFwcGVkIC9GYWxzZQo+PgplbmRvYmoKNyAwIG9iago8PAovQ291bnQgMSAvS2lkcyBbIDQgMCBSIF0gL1R5cGUgL1BhZ2VzCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDMyNQo+PgpzdHJlYW0KR2FycCc5bCNBOCohWW5aNUsuXiFgbHNVcXBSQidHQmRtUTpISSRDMUZkZiFRQFInZmgpNkpOYCtHVj1pSVhfdDdDKTxCNV1FKT1CPzg7YCkrVVRvaVwuRGxXTTpJaTNuMSFRIjREMC5zOkQlaTFLT0dRXTFqSSopTlZORUJFKElubDZqPCsmTCRTZWApVzZoSzUiJyYxbWFTMEZLcmlPdSllM0NgTFU2Mi8zTk4iLUdIN1VQMmZjdU5OKVkzRU03cjIvWkgpcyJpIWA9Oj1fP0gmYF5uaSlgZiFpc1teNyRQZ2lqVFhcQSdUYW9oRidJZyhJY0thVlomUW81SUVyLkUyMS1cKExHTGk3YnFxK15qby5mKFBTOks7MzEnZ1JDdCNBKD9UIUM3SmszRWU3OSEkOlMqKUVdJj4rPGtoLlxJYS5+PmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDkKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDczIDAwMDAwIG4gCjAwMDAwMDAxMTQgMDAwMDAgbiAKMDAwMDAwMDIyMSAwMDAwMCBuIAowMDAwMDAwMzMzIDAwMDAwIG4gCjAwMDAwMDA1MzYgMDAwMDAgbiAKMDAwMDAwMDYwNCAwMDAwMCBuIAowMDAwMDAwOTA2IDAwMDAwIG4gCjAwMDAwMDA5NjUgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8YTc4MDU4ZGVhZTBhODM3ZmNmN2EzNTJmMmJjNTliYWU+PGE3ODA1OGRlYWUwYTgzN2ZjZjdhMzUyZjJiYzU5YmFlPl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKGh0dHA6Ly93d3cucmVwb3J0bGFiLmNvbSkKCi9JbmZvIDYgMCBSCi9Sb290IDUgMCBSCi9TaXplIDkKPj4Kc3RhcnR4cmVmCjEzODAKJSVFT0YK"
+};
+/* PDF-DANE-KONIEC */
+(function () {
+  'use strict';
+  var FAKTURY = [
+    { nr: 'FV-216', dostawca: 'Alfa Materiały Sp. z o.o.',      data: '2026-10-05', kwota: '4 210,00 PLN' },
+    { nr: 'FV-217', dostawca: 'Beta Logistyka S.A.',            data: '2026-10-12', kwota: '12 950,00 PLN' },
+    { nr: 'FV-218', dostawca: 'Gamma Opakowania Sp. z o.o.',    data: '2026-10-19', kwota: '6 480,00 PLN' },
+    { nr: 'FV-219', dostawca: 'Delta Serwis Sp. z o.o.',        data: '2026-10-26', kwota: '1 830,00 PLN' }
+  ];
+  var WIDOKI = {
+    A: { opis: 'pobieranie bezpośrednio w wierszu',
+         akcje: [ { id: 'pobierz-pdf', etykieta: 'Pobierz PDF' } ] },
+    B: { opis: 'pobieranie ukryte pod przyciskiem Dokumenty',
+         akcje: [ { id: 'dane-firmy', etykieta: 'Dane firmy' }, { id: 'dokumenty', etykieta: 'Dokumenty' },
+                  { id: 'historia-platnosci', etykieta: 'Historia płatności' } ] },
+    C: { opis: 'jak widok B, ale przycisk Dokumenty zmienił nazwę',
+         akcje: [ { id: 'dane-firmy', etykieta: 'Dane firmy' }, { id: 'dokumenty', etykieta: 'Faktury i rozliczenia' },
+                  { id: 'historia-platnosci', etykieta: 'Historia płatności' } ] },
+    D: { opis: 'jak widok B, ale etykiety są mniej jednoznaczne',
+         akcje: [ { id: 'dane-firmy', etykieta: 'Dane firmy' }, { id: 'dokumenty', etykieta: 'Rozliczenia' },
+                  { id: 'historia-platnosci', etykieta: 'Płatności' } ] }
+  };
+
+  var param = (new URLSearchParams(location.search).get('widok') || 'A').toUpperCase();
+  var widok = WIDOKI[param] ? param : 'A';
+  var def = WIDOKI[widok];
+
+  function el(tag, attrs, text) {
+    var e = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    if (text !== undefined) { e.textContent = text; }
+    return e;
+  }
+  function godzina() { return new Date().toTimeString().slice(0, 8); }
+
+  /* ?uczen=1: wersja dla studentów i agenta (ScreenPlay): bez panelu prowadzącego i bez opisu układu, który zdradzałby rozwiązanie */
+  var uczen = new URLSearchParams(location.search).get('uczen') === '1';
+  if (uczen) {
+    document.getElementById('panel-prowadzacego').hidden = true;
+  } else {
+    document.getElementById('widok-opis').textContent = 'Widok ' + widok + ': ' + def.opis + '. Dane fikcyjne, strona do zajęć.';
+  }
+
+  var przel = document.getElementById('przelaczniki');
+  Object.keys(WIDOKI).forEach(function (k) {
+    var a = el('a', { href: '?widok=' + k }, k);
+    if (k === widok) { a.setAttribute('aria-current', 'true'); }
+    przel.appendChild(a);
+    przel.appendChild(document.createTextNode(' '));
+  });
+  document.getElementById('reset').addEventListener('click', function () { location.reload(); });
+
+  function pobierz(nr) {
+    var bin = atob(PDF[nr]), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) { bytes[i] = bin.charCodeAt(i); }
+    var adres = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    var a = document.createElement('a');
+    a.href = adres;
+    a.download = nr + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(adres); }, 5000);
+    var s = document.getElementById('status');
+    var n = (parseInt(s.getAttribute('data-liczba-pobran'), 10) || 0) + 1;
+    s.setAttribute('data-liczba-pobran', String(n));
+    s.setAttribute('data-ostatnie-pobranie', nr + '.pdf');
+    s.textContent = 'Pobrano plik ' + nr + '.pdf (' + godzina() + ')';
+  }
+
+  function przyciskPobierz(f) {
+    var b = el('button', { type: 'button', 'data-akcja': 'pobierz-pdf', 'data-faktura': f.nr }, 'Pobierz PDF');
+    b.addEventListener('click', function () { pobierz(f.nr); });
+    return b;
+  }
+
+  function wypelnij(panel, id, f) {
+    panel.textContent = '';
+    if (id === 'dokumenty') {
+      panel.appendChild(przyciskPobierz(f));
+    } else if (id === 'dane-firmy') {
+      panel.appendChild(el('p', {}, 'Dostawca: ' + f.dostawca + '. Dane adresowe i NIP (fikcyjne): 000-000-00-00.'));
+    } else {
+      panel.appendChild(el('p', {}, 'Historia płatności faktury ' + f.nr + ': brak zaksięgowanych wpłat.'));
+    }
+  }
+
+  var tbody = document.querySelector('#faktury tbody');
+  FAKTURY.forEach(function (f) {
+    var tr = el('tr', { 'data-faktura': f.nr });
+    tr.appendChild(el('td', { class: 'nr' }, f.nr));
+    tr.appendChild(el('td', {}, f.dostawca));
+    tr.appendChild(el('td', { class: 'data' }, f.data));
+    tr.appendChild(el('td', { class: 'kwota' }, f.kwota));
+    var td = el('td', { class: 'akcje' });
+    var grupa = el('div', { class: 'grupa-akcji', role: 'group', 'aria-label': 'Akcje faktury ' + f.nr });
+    var menu = el('div', { class: 'menu' });
+    var panel = el('div', { class: 'szczegoly' });      /* w grupie: tylko przycisk Pobierz PDF */
+    panel.hidden = true;
+    var info = el('div', { class: 'szczegoly' });       /* poza grupą: akapity informacyjne (bez przycisków) */
+    info.hidden = true;
+    def.akcje.forEach(function (a) {
+      if (a.id === 'pobierz-pdf') {
+        var bp = przyciskPobierz(f);
+        bp.textContent = a.etykieta;
+        menu.appendChild(bp);
+        return;
+      }
+      var b = el('button', { type: 'button', 'data-akcja': a.id, 'data-faktura': f.nr, 'aria-expanded': 'false' }, a.etykieta);
+      b.addEventListener('click', function () {
+        var byl = b.getAttribute('aria-expanded') === 'true';
+        [].forEach.call(menu.querySelectorAll('button[aria-expanded]'), function (x) { x.setAttribute('aria-expanded', 'false'); });
+        panel.hidden = true;
+        panel.textContent = '';
+        info.hidden = true;
+        info.textContent = '';
+        if (byl) { return; }
+        b.setAttribute('aria-expanded', 'true');
+        var cel = (a.id === 'dokumenty') ? panel : info;
+        wypelnij(cel, a.id, f);
+        cel.hidden = false;
+      });
+      menu.appendChild(b);
+    });
+    grupa.appendChild(menu);
+    grupa.appendChild(panel);
+    td.appendChild(grupa);
+    td.appendChild(info);
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  });
+})();
+</script>
+</body>
+</html>
